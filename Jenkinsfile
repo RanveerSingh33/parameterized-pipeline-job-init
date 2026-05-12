@@ -8,38 +8,32 @@ pipeline {
         sh "echo Sleep-Time - ${params.SLEEP_TIME}, Port - ${params.APP_PORT}, Branch - ${params.BRANCH_NAME}"
       }
     }
-
     stage('Build') {
       steps {
         sh 'mvn clean package -DskipTests=true'
         archiveArtifacts 'target/hello-demo-*.jar'
       }
     }
-
     stage('Test') {
       steps {
         sh 'mvn test'
         junit(testResults: 'target/surefire-reports/TEST-*.xml', keepProperties: true, keepTestNames: true)
       }
     }
-    
     stage('Local Deployment') {
       steps {
-        sh """ java -jar target/hello-demo-*.jar > /dev/null & """
+        sh 'fuser -k 6767/tcp || true'
+        sh 'nohup java -jar target/hello-demo-*.jar > /dev/null 2>&1 &'
       }
     }
-    
     stage('Integration Testing') {
       steps {
         sh "sleep ${params.SLEEP_TIME}"
         sh "curl -s http://localhost:${params.APP_PORT}/hello"
       }
     }
-
-
   }
   tools {
     maven 'M398'
   }
-
 }
